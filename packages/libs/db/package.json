@@ -1,0 +1,15 @@
+{
+  "name": "libs-db",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npx tsc",
+    "clean": "rm -rf node_modules && rm -rf dist"
+  },
+  "main": "dist/index.js",
+  "dependencies": {
+    "@types/yargs": "^17.0.33",
+    "pg-promise": "^11.9.1",
+    "yargs": "^17.7.2"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "tree-of-failures",
+  "private": true,
+  "workspaces": [
+    "packages/libs/db",
+    "packages/webapp",
+    "packages/server"
+  ],
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "npm run build --ws",
+    "clean": "npm run clean --ws",
+    "migrate:latest": "knex migrate:latest --knexfile knexfile.mjs",
+    "migrate:make": "knex migrate:make --knexfile knexfile.mjs",
+    "seed:make": "knex seed:make --knexfile knexfile.mjs",
+    "seed:run": "knex seed:run --knexfile knexfile.mjs"
+  },
+  "dependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^20.10.6",
+    "@types/yargs": "^17.0.32",
+    "better-sqlite3": "^9.2.2",
+    "knex": "^3.1.0",
+    "sqlite3": "^5.1.7",
+    "yargs": "^17.7.2"
+  }
+}
