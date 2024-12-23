@@ -3,8 +3,9 @@
   "private": true,
   "workspaces": [
     "packages/libs/db",
-    "packages/webapp",
-    "packages/server"
+    "packages/toff",
+    "packages/toff-server",
+    "packages/toff-ui"
   ],
   "devDependencies": {
     "typescript": "^5.5.4"
