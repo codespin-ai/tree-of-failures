@@ -2,7 +2,6 @@
   "name": "tree-of-failures",
   "private": true,
   "workspaces": [
-    "packages/libs/db",
     "packages/toff",
     "packages/toff-server",
     "packages/toff-ui"
