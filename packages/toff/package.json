@@ -9,8 +9,10 @@
     "clean": "rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.1",
-    "openai": "^4.73.1",
+    "@anthropic-ai/sdk": "^0.33.1",
+    "codespin": "^0.0.264",
+    "libllm": "^0.0.19",
+    "openai": "^4.77.0",
     "uuid": "^11.0.3"
   },
   "author": "",
