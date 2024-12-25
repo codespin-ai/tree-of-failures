@@ -19,12 +19,12 @@ export async function rollbackTask(taskId: string) {
         `
       SELECT container_id, snapshot_id
       FROM docker_snapshot
-      WHERE task_id = ?
+      WHERE task_id = @taskId
       ORDER BY created_at DESC
       LIMIT 1
     `
       )
-      .get(taskId) as DockerSnapshot;
+      .get({ taskId }) as DockerSnapshot;
 
     if (!snapshot) {
       throw new Error(`No snapshot found for task ${taskId}`);

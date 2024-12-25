@@ -1,7 +1,12 @@
 import { getDb } from "../db/index.js";
 import type { DockerServiceAPI } from "./docker.js";
 import type { LLMServiceAPI } from "./llm.js";
-import type { TaskNode, Action, AttemptResult, ActionParams } from "../types.js";
+import type {
+  TaskNode,
+  Action,
+  AttemptResult,
+  ActionParams,
+} from "../types.js";
 import { v4 as uuidv4 } from "uuid";
 import type { FileContent } from "libllm";
 import { promises as fs } from "fs";
@@ -41,17 +46,19 @@ export function createTaskManager(
       `
       INSERT INTO task (
         id, description, goal, parent_id, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (
+        @id, @description, @goal, @parentId, @status, @createdAt, @updatedAt
+      )
     `
-    ).run(
-      task.id,
-      task.description,
-      task.goal,
-      task.parentId,
-      task.status,
-      task.createdAt.toISOString(),
-      task.updatedAt.toISOString()
-    );
+    ).run({
+      id: task.id,
+      description: task.description,
+      goal: task.goal,
+      parentId: task.parentId,
+      status: task.status,
+      createdAt: task.createdAt.toISOString(),
+      updatedAt: task.updatedAt.toISOString(),
+    });
 
     return task;
   }
