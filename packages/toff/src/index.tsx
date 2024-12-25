@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { program } from "commander";
 import { initDb } from "./commands/init.js";
-import { createTask } from "./commands/prompt.js";
+import { promptCommand } from "./commands/prompt.js";
 import { rollbackTask } from "./commands/rollback.js";
 
 program.name("toff").description("Tree of Failures CLI");
@@ -12,7 +12,7 @@ program
   .command("prompt")
   .description("Create a new root task")
   .argument("<prompt>", "Task prompt/description")
-  .action(createTask);
+  .action(promptCommand);
 
 program
   .command("rollback")

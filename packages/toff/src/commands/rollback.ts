@@ -4,6 +4,11 @@ import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
+type DockerSnapshot = {
+  container_id: string;
+  snapshot_id: string;
+};
+
 export async function rollbackTask(taskId: string) {
   try {
     const db = getDb();
@@ -19,7 +24,7 @@ export async function rollbackTask(taskId: string) {
       LIMIT 1
     `
       )
-      .get(taskId);
+      .get(taskId) as DockerSnapshot;
 
     if (!snapshot) {
       throw new Error(`No snapshot found for task ${taskId}`);

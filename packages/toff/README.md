@@ -53,7 +53,7 @@ type AttemptResult = {
   };
 };
 
-type SourceFile = {
+type FileContent = {
   path: string;
   content: string;
 };

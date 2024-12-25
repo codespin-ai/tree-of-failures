@@ -1,13 +1,19 @@
-import { getCompletionAPI } from "../api/getCompletionAPI.js";
-import { LLMService } from "../services/llm.js";
-import { TaskManager } from "../services/taskManager.js";
-import { DockerService } from "../services/docker.js";
+import { getAPI } from "libllm";
+import { createLLMService } from "../services/llm.js";
+import { createDockerService } from "../services/docker.js";
+import { createTaskManager } from "../services/taskManager.js";
+import { getLLMConfigLoaders } from "../settings/getLLMConfigLoaders.js";
+import { getLoggers } from "../console.js";
 
-export async function promptCommand(prompt: string) {
-  const llmApi = getCompletionAPI("anthropic");
-  const llmService = new LLMService(llmApi);
-  const dockerService = new DockerService();
-  const taskManager = new TaskManager(llmService, dockerService);
+export async function promptCommand(prompt: string, workingDir: string) {
+  const llmApi = getAPI(
+    "anthropic",
+    getLLMConfigLoaders(undefined, workingDir),
+    getLoggers()
+  );
+  const llmService = createLLMService(llmApi);
+  const dockerService = createDockerService();
+  const taskManager = createTaskManager(llmService, dockerService);
 
   try {
     const task = await taskManager.createTask(prompt);
@@ -17,3 +23,5 @@ export async function promptCommand(prompt: string) {
     process.exit(1);
   }
 }
+
+export { promptCommand as createTask };

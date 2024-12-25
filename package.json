@@ -24,6 +24,7 @@
     "@types/yargs": "^17.0.32",
     "better-sqlite3": "^9.2.2",
     "knex": "^3.1.0",
+    "libllm": "^0.0.17",
     "sqlite3": "^5.1.7",
     "yargs": "^17.7.2"
   }
