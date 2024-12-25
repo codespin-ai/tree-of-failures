@@ -10,6 +10,7 @@ toff maintains a dialogue with an LLM to:
 2. Select the best next action based on previous attempts
 3. Learn from failures to inform future attempts
 4. Track the tree of attempts and their outcomes
+5. Maintain rollback points through Docker snapshots
 
 ## How It Works
 
@@ -35,7 +36,19 @@ type Action = {
   id: string;
   type: "shell" | "files" | "http" | "llm_call" | "docker" | "custom";
   description: string;
-  params: Record<string, unknown>;
+  params: ActionParams[keyof ActionParams];
+};
+
+type ActionParams = {
+  shell: { command: string };
+  files: { filename: string; content: string };
+  http: { url: string; method: string; body?: unknown };
+  llm_call: {
+    messages: CompletionInputMessage[];
+    options: CompletionOptions;
+  };
+  docker: { command: string };
+  custom: Record<string, unknown>;
 };
 
 type AttemptResult = {
@@ -66,6 +79,7 @@ type FileContent = {
 
    - Creates a new task
    - Starts a Docker container
+   - Takes an initial snapshot of the environment
    - Begins the LLM conversation
 
 2. **LLM-toff Communication**
@@ -87,6 +101,7 @@ type FileContent = {
        "attempts": []
      }
    }
+   ```
    ````
 
    What should be the next action to take? Your response should include:
@@ -95,11 +110,9 @@ type FileContent = {
    2. A JSON code block with the action details
    3. If the action involves creating or modifying files, include the complete file contents
 
-   ```
-
    LLM → toff:
-   ```
 
+   ````
    We need to create a Redis configuration file and then install Redis. Here's what we'll do:
 
    ```json
@@ -114,7 +127,7 @@ type FileContent = {
      "reasoning": "Installing Redis with default configuration first",
      "expectedOutcome": "Redis will be installed successfully"
    }
-   ```
+   ````
 
    Before executing the installation, let's create the configuration file:
 
@@ -153,22 +166,19 @@ type FileContent = {
 3. **Action and File Execution**
    - toff extracts both the JSON action and any file operations from the LLM response
    - Creates or modifies any specified files in the Docker container
+   - Takes a snapshot of the environment before executing the action
    - Executes the main action
    - Records the attempt and its result
    - Sends the result back to the LLM
 
 ### File Operations
 
-The LLM can include file operations in its responses using a simple format:
+The LLM can include file operations in its responses using a specific format:
 
-```
 File path: path/to/file.ext
-```
 
+```
 file content goes here...
-
-```
-
 ```
 
 Key characteristics:
@@ -177,14 +187,20 @@ Key characteristics:
 - No partial updates or omitted content is allowed
 - Files are created/modified before the main action executes
 - Directories are automatically created if they don't exist
+- All file operations are tracked in the attempt history
 
 ### Learning from Failures
 
-When an attempt fails, toff sends the updated task state to the LLM including:
+When an attempt fails, toff:
 
-- The failed action and its error
-- Complete history of previous attempts
-- Current state of the task
+1. Records the failure in the database
+2. Captures the error information and severity
+3. Can roll back to the last successful snapshot if needed
+4. Sends the updated task state to the LLM including:
+   - The failed action and its error
+   - Complete history of previous attempts
+   - Current state of the task
+   - Available rollback points
 
 The LLM analyzes this information and can respond with:
 
@@ -192,6 +208,7 @@ The LLM analyzes this information and can respond with:
 - A new action to try (as a JSON block)
 - Any necessary file modifications
 - Optional explanation of the chosen approach
+- Decision whether to retry or roll back to a previous state
 
 ### State Management
 
@@ -199,8 +216,11 @@ toff maintains state through:
 
 1. Docker containers for isolation
 2. SQLite database for task tracking
-3. Automatic file operation handling
-4. Action attempt history
+   - Tasks table for the task tree
+   - Attempts table for action history
+3. Automatic Docker snapshots
+4. File operation tracking
+5. Action attempt history
 
 The LLM has access to:
 
@@ -208,6 +228,42 @@ The LLM has access to:
 - All previous attempts
 - Error information
 - System context from Docker
+- Available rollback points
+
+### Database Schema
+
+The system uses SQLite with the following core tables:
+
+```sql
+CREATE TABLE task (
+  id TEXT PRIMARY KEY,
+  description TEXT NOT NULL,
+  goal TEXT NOT NULL,
+  parent_id TEXT,
+  continuation_summary TEXT,
+  status TEXT CHECK (status IN ('pending', 'in_progress', 'success', 'failed')) NOT NULL DEFAULT 'pending',
+  docker_snapshot_id TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (parent_id) REFERENCES task(id)
+);
+
+CREATE TABLE attempt (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL,
+  action_type TEXT NOT NULL CHECK (action_type IN ('shell', 'files', 'http', 'llm_call', 'docker', 'custom')),
+  action_id TEXT NOT NULL,
+  action_description TEXT NOT NULL,
+  action_params TEXT NOT NULL,
+  status TEXT CHECK (status IN ('pending', 'success', 'failure')) NOT NULL DEFAULT 'pending',
+  error_code TEXT,
+  error_message TEXT,
+  error_severity TEXT CHECK (error_severity IN ('recoverable', 'fatal')),
+  outputs TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (task_id) REFERENCES task(id)
+);
+```
 
 ## Installation
 
@@ -223,6 +279,18 @@ Create a new task:
 toff prompt "Your task description"
 ```
 
+Initialize the database:
+
+```bash
+toff init
+```
+
+Rollback to a previous task state:
+
+```bash
+toff rollback <taskId>
+```
+
 ## Configuration
 
 Supports multiple LLM providers:
@@ -230,13 +298,20 @@ Supports multiple LLM providers:
 - Anthropic (Claude)
 - OpenAI
 
-Set your API keys via environment variables:
+Authentication can be configured through:
+
+1. Environment variables:
 
 ```bash
 export ANTHROPIC_API_KEY=your_key_here
 # or
 export OPENAI_API_KEY=your_key_here
 ```
+
+2. Configuration files in:
+   - Current working directory: `.codespin/anthropic.json` or `.codespin/openai.json`
+   - Home directory: `~/.codespin/anthropic.json` or `~/.codespin/openai.json`
+   - Custom directory specified via CLI
 
 ## License
 
