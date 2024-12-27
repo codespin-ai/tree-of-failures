@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.33.1",
+    "cli-table3": "^0.6.5",
     "codespin": "^0.0.264",
     "libllm": "^0.0.19",
     "openai": "^4.77.0",
